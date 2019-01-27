@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"image/png"
 
+	"os"
 	"github.com/go-yaml/yaml"
 
 	"image"
