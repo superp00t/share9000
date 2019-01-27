@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>SHARE9K</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+  <script src="main.js"></script>
+</head>
+<body>
+  <img class="logo" src="logo.png"></img>
+  <button onclick="emit(['scrot'])" class="btn">Screenshot</button>
+  <button onclick="emit(['snip-scrot'])" class="btn">Regional screenshot</button>
+  <select onchange="emit(['change-uploader', this.value])" class="opts" id="uploaders">
+    <option value="_">Loading...</option>
+  </select>
+  <div>
+    <input onchange="this._checked = !this._checked; emit(['review-uploads', this._checked.toString()])" type="checkbox" id="review-uploads"></input>
+    <label for="review-uploads">Review screenshots before uploading?</label>
+  </div>
+  <button onclick="emit(['file-select'])" class="btn">Upload file</button>
+  <button onclick="emit(['edit-config'])" class="btn">Edit config file</button>
+  <button onclick="emit(['reload-config'])" class="btn">Reload config file</button>
+  <div class="progressbar">
+    <div style="width: 0%;" id="prog" class="progress">
+    </div>
+  </div>
+  <p id="status" class="label"></p>
+</body>
+</html>

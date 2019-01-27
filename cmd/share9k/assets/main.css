@@ -1,0 +1,75 @@
+.btn {
+  color:     rgb(236, 236, 236);
+  /* background:     #496ed4; */
+  background: linear-gradient( #5fafe8, #496ed4);
+  border:       none;
+  border-bottom: 2px solid #000;
+  border-right:  2px solid #000;
+  border-radius: 4px 4px;
+  display: block;
+  margin: auto;
+  width: 100%;
+  padding: 5px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+.btn:focus {
+  outline: 0;
+}
+
+.btn:active {
+  border:       none;
+  border-left: 2px solid #000;
+  border-top:  2px solid #000;
+}
+
+.logo {
+  width: 100%;
+  display: block;
+  margin: auto;
+  margin-bottom: 20px;
+} 
+
+.label, label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+
+.opts {
+  width: 100%;
+  padding: 5px;
+  margin: 3px;
+}
+
+.opts option {
+  width: 100%;
+  float: right;
+}
+
+select::-ms-value {
+  color:      #000;
+  background: transparent;
+}
+
+.file {
+  margin: 5px;
+  width: 100%;
+}
+
+label {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.progressbar {
+  margin-top: 12px;
+  width: 100%;
+  border: 1px solid #333;
+  border-radius: 3px 3px;
+}
+
+.progress {
+  margin: 1px;
+  height: 8px;
+  background: #496ed4;
+}
