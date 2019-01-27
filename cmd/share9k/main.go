@@ -3,10 +3,11 @@ package main
 /*
 #include <stdio.h>
 #include "select.h"
+#define _THREAD_SAFE 1
 #cgo linux LDFLAGS: -lX11 -lX11 -lXi
 #cgo windows pkg-config: sdl2
 #cgo darwin CFLAGS: -I/usr/local/include/SDL2 
-#cgo darwin LDFLAGS: -D_THREAD_SAFE -L/usr/local/lib -lSDL2
+#cgo darwin LDFLAGS: -L/usr/local/lib -lSDL2
 */
 import "C"
 
