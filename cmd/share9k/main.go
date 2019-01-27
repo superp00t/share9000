@@ -5,6 +5,7 @@ package main
 #include "select.h"
 #cgo linux LDFLAGS: -lX11 -lX11 -lXi
 #cgo windows pkg-config: sdl2
+#cgo darwin pkg-config: sdl2
 */
 import "C"
 

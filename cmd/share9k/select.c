@@ -1,5 +1,10 @@
+#if defined(_WIN32) || defined(__APPLE__)
+
 #ifdef _WIN32
 #include "Windows.h"
+static HWND hwnd          = 0;
+#endif
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <SDL2/SDL.h>
@@ -7,19 +12,10 @@
 
 static SDL_Window *screen = NULL;
 static SDL_Renderer *rend = NULL;
-static HWND hwnd          = 0;
 static int desktop_height = 0;
 static int desktop_width = 0;
 
-void acquire_mouse_pos(int *x, int *y)
-{
-  POINT xy;
-  GetCursorPos(&xy);
-
-  *x = (int)xy.x;
-  *y = (int)xy.y;
-}
-
+#ifdef _WIN32
 void acquire_full_desktop_info(
   int *x,
   int *y,
@@ -31,6 +27,18 @@ void acquire_full_desktop_info(
   *w = GetSystemMetrics(SM_CXVIRTUALSCREEN);
   *h = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 }
+#elif __APPLE__
+extern void getScreenResMac(int *x, int *y, int *w, int *h);
+
+void acquire_full_desktop_info(
+  int *x,
+  int *y,
+  int *w,
+  int *h
+) {
+  getScreenResMac(x, y, w, h);
+}
+#endif
 
 void acquire_rectangle(
   int aspect_ratio_x,
@@ -72,6 +80,7 @@ void acquire_rectangle(
     SDL_SWSURFACE | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP
   );
 
+#ifdef _WIN32
   SDL_SysWMinfo info;
   SDL_VERSION(&info.version);
   if(SDL_GetWindowWMInfo(screen, &info))
@@ -80,6 +89,8 @@ void acquire_rectangle(
   }
   SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) |WS_EX_LAYERED);
   SetLayeredWindowAttributes(hwnd, RGB(0,0,0), (255 * 70)/100, LWA_COLORKEY);
+#endif
+
   rend = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED);
 
   SDL_SetWindowOpacity(screen, 0.5f);
