@@ -65,7 +65,11 @@ func setOpts(o Opts) {
 }
 
 func loadConfig() {
-	config := etc.LocalDirectory().Concat("s9k_config.txt")
+	loc := etc.LocalDirectory()
+	if !loc.IsExtant() {
+		os.MkdirAll(loc.Render(), 0700)
+	}
+	config := loc.Concat("s9k_config.txt")
 	if !config.IsExtant() {
 		dc := DefaultConfig
 		dc = strings.Replace(dc, "\n", "\r\n", -1)
