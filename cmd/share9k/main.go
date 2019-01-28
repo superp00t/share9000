@@ -16,6 +16,7 @@ import (
 	"image/png"
 
 	"os"
+	"os/exec"
 	"github.com/go-yaml/yaml"
 
 	"image"
@@ -23,6 +24,7 @@ import (
 	"io/ioutil"
 	"runtime"
 	"strings"
+	"strconv"
 
 	"github.com/atotto/clipboard"
 	"github.com/superp00t/etc"
@@ -103,38 +105,54 @@ func loadConfig() {
 	setUploaders()
 }
 
-var regionSelectRequest = make(chan bool)
+func parseInt(s string) int {
+	i, err := strconv.ParseInt(s, 0, 64)
+	if err != nil {
+		yo.Fatal(err)
+	}
+
+	return int(i)
+}
 
 func main() {
-	pth := etc.LocalDirectory().Concat(".s9k_opts")
-	if !pth.IsExtant() {
-		setOpts(Opts{
-			ReviewUploads: true,
-			Service:       "",
-		})
-	} else {
-		b, err := ioutil.ReadFile(pth.Render())
-		if err != nil {
-			yo.Fatal(err)
-		}
+	yo.AddSubroutine("select-region", []string{"aspect ratio width", "aspect ratio height"}, "snaps region", func(args []string) {
+		arx := parseInt(args[0])
+		ary := parseInt(args[1])
 
-		yaml.Unmarshal(b, &_Opts)
-		for _, v := range Uploaders {
-			if v.ServiceName() == _Opts.Service {
-				chosenDL = v
-				break
+		var x, y, w, h C.int
+		C.acquire_rectangle(C.int(arx), C.int(ary), &x, &y, &w, &h)
+
+		fmt.Println(int(x), int(y), int(w), int(h))
+	})
+
+	yo.Main("launches GUI", func(args []string) {
+		pth := etc.LocalDirectory().Concat(".s9k_opts")
+		if !pth.IsExtant() {
+			setOpts(Opts{
+				ReviewUploads: true,
+				Service:       "",
+			})
+		} else {
+			b, err := ioutil.ReadFile(pth.Render())
+			if err != nil {
+				yo.Fatal(err)
+			}
+	
+			yaml.Unmarshal(b, &_Opts)
+			for _, v := range Uploaders {
+				if v.ServiceName() == _Opts.Service {
+					chosenDL = v
+					break
+				}
 			}
 		}
-	}
+	
+		loadConfig()
+	
+		runUI()
+	})
 
-	loadConfig()
-
-	go runUI()
-
-	for {
-		<-regionSelectRequest
-		snapRegion()
-	}
+	yo.Init()
 }
 
 func screenShot() {
@@ -151,19 +169,28 @@ func screenShot() {
 	displayUploadRect(rect)
 }
 
-func requestSnapRegion() {
-	regionSelectRequest <- true
-}
 
 func snapRegion() {
-	var x, y, w, h C.int
-	C.acquire_rectangle(C.int(0), C.int(0), &x, &y, &w, &h)
+	output := etc.NewBuffer()
+	cmd := exec.Command(os.Args[0], "select-region", "0", "0")
+	cmd.Stdout = output
+	cmd.Run()
+
+	str := strings.Split(
+		strings.TrimRight(output.ToString(), "\r\n "),
+		" ",
+	)
+
+	x, y, w, h := parseInt(str[0]), parseInt(str[1]), parseInt(str[2]), parseInt(str[3])
+
+	// var x, y, w, h C.int
+	// C.acquire_rectangle(C.int(0), C.int(0), &x, &y, &w, &h)
 
 	rect := image.Rect(
-		int(x),
-		int(y),
-		int(x)+int(w),
-		int(y)+int(h),
+		x,
+		y,
+		x+w,
+		y+h,
 	)
 
 	if w == 0 || h == 0 {

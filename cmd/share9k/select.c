@@ -48,9 +48,6 @@ void acquire_rectangle(
   int *w,
   int *h
 ) {
-  setbuf(stdout, NULL);
-  printf("Bitmap draw\n");
-
   int desktop_height = 0;
   int desktop_width = 0;
   int desktop_origin_x = 0;
@@ -62,12 +59,6 @@ void acquire_rectangle(
     &desktop_width,
     &desktop_height
   );
-
-  printf("%d %d %d %d\n",
-     desktop_origin_x,
-    desktop_origin_y,
-    desktop_width,
-    desktop_height);
 
   SDL_Init(SDL_INIT_VIDEO);
 
@@ -166,16 +157,13 @@ void acquire_rectangle(
         float ar_x = aspect_ratio_x;
         float ar_y = aspect_ratio_y;
         float ar = ar_y / ar_x;
-        // printf("AR: %f\n", ar);
 
         float actual_width = box.w;
         float actual_height = box.h;
 
         float new_height = actual_width * ar;
 
-        // printf("Height before: %d (%d)\n", box.h, box.w);
         box.h = new_height;
-        // printf("Height  after: %d\n", box.h);
       }
 
       SDL_SetRenderDrawColor(rend, 0, 0, 255, 0);
