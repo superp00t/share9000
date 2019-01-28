@@ -21,6 +21,7 @@ import (
 	"image"
 	"io"
 	"io/ioutil"
+	"runtime"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -29,6 +30,12 @@ import (
 
 	"github.com/kbinani/screenshot"
 )
+
+func init() {
+	// This is necessary for SDL logic,
+	// which must be run in func main in order to be truly cross-platform
+	runtime.LockOSThread()
+}
 
 type Opts struct {
 	Service       string `yaml:"service"`
@@ -96,6 +103,8 @@ func loadConfig() {
 	setUploaders()
 }
 
+var regionSelectRequest = make(chan bool)
+
 func main() {
 	pth := etc.LocalDirectory().Concat(".s9k_opts")
 	if !pth.IsExtant() {
@@ -120,7 +129,12 @@ func main() {
 
 	loadConfig()
 
-	runUI()
+	go runUI()
+
+	for {
+		<-regionSelectRequest
+		snapRegion()
+	}
 }
 
 func screenShot() {
@@ -135,6 +149,10 @@ func screenShot() {
 	)
 
 	displayUploadRect(rect)
+}
+
+func requestSnapRegion() {
+	regionSelectRequest <- true
 }
 
 func snapRegion() {
@@ -152,7 +170,7 @@ func snapRegion() {
 		return
 	}
 
-	displayUploadRect(rect)
+	go displayUploadRect(rect)
 }
 
 func displayUploadRect(rect image.Rectangle) {

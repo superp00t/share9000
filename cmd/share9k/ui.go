@@ -128,7 +128,7 @@ func handleRPC(webv webview.WebView, str string) {
 	case "scrot":
 		go screenShot()
 	case "snip-scrot":
-		go snapRegion()
+		go requestSnapRegion()
 	case "change-uploader":
 		bstr, _ := strconv.ParseInt(s[1], 0, 64)
 		chosenDL = Uploaders[int(bstr)]
