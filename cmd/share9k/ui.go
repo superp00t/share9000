@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -10,9 +9,12 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/superp00t/etc"
 
@@ -46,6 +48,15 @@ func runUI() {
 success:
 
 	h := mux.NewRouter()
+	h.HandleFunc("/preview/{id}", func(rw http.ResponseWriter, r *http.Request) {
+		u, _ := etc.ParseUUID(mux.Vars(r)["id"])
+		i, ok := previews.Load(u)
+		if ok {
+			b := i.(*etc.Buffer).Bytes()
+			rw.Header().Set("Content-Type", "image/png")
+			rw.Write(b)
+		}
+	})
 	h.PathPrefix("/").Handler(http.FileServer(assetFS()))
 
 	go func() {
@@ -110,6 +121,8 @@ func setUploaders() {
 	}
 }
 
+var previews = new(sync.Map)
+
 func onExec() {
 	yo.Ok("Page loaded")
 	setUploaders()
@@ -167,7 +180,15 @@ func handleRPC(webv webview.WebView, str string) {
 			}
 		}
 	case "edit-config":
-		open.Run(etc.LocalDirectory().Concat("s9k_config.txt").Render())
+		if runtime.GOOS == "windows" {
+			cmd := exec.Command("C:\\Windows\\System32\\rundll32.exe", "url.dll,FileProtocolHandler", etc.LocalDirectory().Concat("s9k_config.txt").Render())
+			err := cmd.Run()
+			if err != nil {
+				yo.Warn(err)
+			}
+		} else {
+			open.Run(etc.LocalDirectory().Concat("s9k_config.txt").Render())
+		}
 	case "review-uploads":
 		setOpts(Opts{
 			_Opts.Service,
@@ -192,6 +213,9 @@ func displayImage(title string, img image.Image) {
 
 	buf := etc.NewBuffer()
 	png.Encode(buf, imgData)
+	uid := etc.GenerateRandomUUID()
+	yo.Ok("storing in preview", uid)
+	previews.Store(uid, buf)
 
 	thumbX := rect.Max.X - rect.Min.X
 	thumbY := rect.Max.Y - rect.Min.Y
@@ -201,38 +225,23 @@ func displayImage(title string, img image.Image) {
 
 	yo.Ok("Thumbnail dimensions", thumbX, thumbY)
 
-	base64Img = "data:image/png;base64," + url.QueryEscape(base64.StdEncoding.EncodeToString(buf.Bytes()))
+	fmt.Println(base64Img)
 
-	imgdisplay := webview.New(webview.Settings{
-		Width:     thumbX,
-		Height:    thumbY,
-		Title:     title,
-		Resizable: true,
-		URL:       fmt.Sprintf("http://localhost:%d/img.html", port),
-		ExternalInvokeCallback: handleDisplayRPC,
-	})
+	cmd := exec.Command(os.Args[0], "review-image", ints(thumbX), ints(thumbY), ints(port), uid.String())
+	output := etc.NewBuffer()
+	cmd.Stderr = output
+	cmd.Stdout = output
+	cmd.Run()
 
-	imgdisplay.Run()
-	yo.Println("exiting...")
-	imgdisplay.Exit()
-}
-
-func handleDisplayRPC(webv webview.WebView, str string) {
-	var s []string
-
-	json.Unmarshal([]byte(str), &s)
-
-	switch s[0] {
-	case "pageload":
-		webv.Dispatch(func() {
-			if err := webv.Eval(`document.getElementById("show-scrot").innerHTML = '<img src="` + base64Img + `"></img>';`); err != nil {
-				yo.Warn(err)
-			}
-		})
-	case "upload":
-		yo.Println("terminating...")
-		webv.Terminate()
-		yo.Println("terminated")
+	boolean := strings.TrimRight(output.ToString(), "\r\n")
+	yo.Okf("returned %s\n", boolean)
+	if boolean == "true" {
 		go uploadReader(uploadName, uploadType, uploadSize, uploadFile)
 	}
+
+	previews.Delete(uid)
+}
+
+func ints(i int) string {
+	return fmt.Sprintf("%d", i)
 }

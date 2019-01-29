@@ -17,14 +17,18 @@ import (
 
 	"os"
 	"os/exec"
-	"github.com/go-yaml/yaml"
 
+	"github.com/go-yaml/yaml"
+	"github.com/zserge/webview"
+
+	"encoding/json"
 	"image"
 	"io"
 	"io/ioutil"
 	"runtime"
-	"strings"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/superp00t/etc"
@@ -125,6 +129,52 @@ func main() {
 		fmt.Println(int(x), int(y), int(w), int(h))
 	})
 
+	yo.AddSubroutine("review-image", []string{"x", "y", "port", "uid"}, "review an image", func(args []string) {
+		port = parseInt(args[2])
+		race := make(chan bool)
+		closed := false
+		go func() {
+			fmt.Println(<-race)
+			os.Exit(0)
+		}()
+
+		urls := fmt.Sprintf("http://localhost:%d/img.html", port)
+
+		w = webview.New(webview.Settings{
+			Width:     parseInt(args[0]),
+			Height:    parseInt(args[1]),
+			Title:     "Review image",
+			Resizable: true,
+			URL:       urls,
+			ExternalInvokeCallback: func(ev webview.WebView, str string) {
+				var s []string
+				json.Unmarshal([]byte(str), &s)
+
+				switch s[0] {
+				case "pageload":
+					ev.Dispatch(func() {
+						if err := ev.Eval(
+							fmt.Sprintf(
+								`document.getElementById("show-scrot").innerHTML = '<img src="http://localhost:%d/preview/%s"></img>';`, port, args[3])); err != nil {
+							yo.Warn(err)
+						}
+					})
+				case "upload":
+					closed = true
+					ev.Terminate()
+					race <- true
+				}
+			},
+		})
+
+		defer w.Exit()
+		w.Run()
+		if !closed {
+			race <- false
+		}
+		time.Sleep(300 * time.Hour)
+	})
+
 	yo.Main("launches GUI", func(args []string) {
 		pth := etc.LocalDirectory().Concat(".s9k_opts")
 		if !pth.IsExtant() {
@@ -137,7 +187,7 @@ func main() {
 			if err != nil {
 				yo.Fatal(err)
 			}
-	
+
 			yaml.Unmarshal(b, &_Opts)
 			for _, v := range Uploaders {
 				if v.ServiceName() == _Opts.Service {
@@ -146,9 +196,9 @@ func main() {
 				}
 			}
 		}
-	
+
 		loadConfig()
-	
+
 		runUI()
 	})
 
@@ -168,7 +218,6 @@ func screenShot() {
 
 	displayUploadRect(rect)
 }
-
 
 func snapRegion() {
 	output := etc.NewBuffer()
